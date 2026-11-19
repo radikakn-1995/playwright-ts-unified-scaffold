@@ -1,0 +1,13 @@
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+playwright/.auth/
+ai-failure-report.md
+eval-summary.json
+.promptfoo/
+.env.local
+.env.*.local
+# eval-baseline.json is NOT ignored: commit it, it is the AI regression baseline
+.DS_Store

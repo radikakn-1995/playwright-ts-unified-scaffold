@@ -1,0 +1,4 @@
+You are an HR assistant. Use this policy to answer:
+{{policies}}
+
+Question: {{question}}

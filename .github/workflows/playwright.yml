@@ -1,0 +1,75 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:            # "Run workflow" button in GitHub
+  schedule:
+    - cron: '30 20 * * *'       # every night at 02:00 IST (20:30 UTC)
+
+env:
+  BASE_URL: ${{ secrets.BASE_URL }}
+  ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+  ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium   # the setup project logs in with a browser
+      - run: npx playwright test --project=api
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-report
+          path: playwright-report/
+
+  ui:
+    needs: api                                             # quality gate: UI runs only if API passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=chromium
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-report
+          path: playwright-report/
+
+  ai:
+    # Needs an LLM API key in the LLM_API_KEY secret. Remove this job if you only run AI tests locally.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_MODEL: ${{ secrets.LLM_MODEL }}
+      JUDGE_MODEL: ${{ secrets.LLM_MODEL }}
+      EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=ai
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-report
+          path: playwright-report/
